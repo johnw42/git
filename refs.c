@@ -1055,9 +1055,16 @@ int ref_transaction_update(struct ref_transaction *transaction,
 {
 	assert(err);
 
-	if ((new_oid && !is_null_oid(new_oid)) ?
-	    check_refname_format(refname, REFNAME_ALLOW_ONELEVEL) :
-	    !refname_is_safe(refname)) {
+        /*
+         * Older versions of git called refname_is_safe only when a
+         * ref was being deleted.  This allowed the creation of
+         * "unsafe" refs that could never be deleted.  Now we do the
+         * opposite, so unsafe refs cannot be created, but existing
+         * unsafe refs can be deleted.
+         */
+        if (new_oid && !is_null_oid(new_oid) &&
+            (check_refname_format(refname, REFNAME_ALLOW_ONELEVEL) ||
+             !refname_is_safe(refname))) {
 		strbuf_addf(err, _("refusing to update ref with bad name '%s'"),
 			    refname);
 		return -1;
